@@ -25,6 +25,8 @@ function AnimCube6(params) {
   var scube = [];
   var initialCube = [];
   var initialSCube = [];
+  var mcube = [];
+  var initialMCube = [];
   // normal vectors
   var faceNormals = [
     [ 0.0, -1.0,  0.0], // U
@@ -308,6 +310,11 @@ function AnimCube6(params) {
         for (var j = 0; j < 36; j++)
           scube[i][j] = 0;
     }
+    for (var i = 0; i < 6; i++) {
+      for (var j = 0; j < 36; j++) {
+        mcube[i][j] = 0;
+      }
+    }
     var initialPosition = "lluu";
     // setup color configuration of the solved cube
     param = getParameter("colorscheme");
@@ -377,6 +384,15 @@ function AnimCube6(params) {
                 break;
               }
             }
+          }
+        }
+      }
+      // setup marker facelets
+      param = getParameter("markers");
+      if (param != null && param.length == 216) {
+        for (var i = 0; i < 6; i++) {
+          for (var j = 0; j < 36; j++) {
+            mcube[i][j] = parseInt(param[i * 36 + j])
           }
         }
       }
@@ -639,6 +655,7 @@ function AnimCube6(params) {
       for (var j = 0; j < 36; j++) {
         initialCube[i][j] = cube[i][j];
         initialSCube[i][j] = scube[i][j];
+        initialMCube[i][j] = mcube[i][j];
       }
     if (initialMove.length > 0)
       doMove(cube, initialMove[0], 0, initialMove[0].length, false);
@@ -1104,6 +1121,7 @@ function AnimCube6(params) {
       for (var j = 0; j < 36; j++) {
         cube[i][j] = initialCube[i][j];
         scube[i][j] = initialSCube[i][j];
+        mcube[i][j] = initialMCube[i][j];
       }
     if (initialMove.length > 0 && typeof initialMove[curMove] != 'undefined')
       doMove(cube, initialMove[curMove], 0, initialMove[curMove].length, false);
@@ -1169,7 +1187,7 @@ function AnimCube6(params) {
   ];
   // subcube dimensions for middle layers
   var midBlockTable = [
-    [[0, 0], [0, 0]], // 0  
+    [[0, 0], [0, 0]], // 0
     [[4, 5], [0, 6]], // 1
     [[0, 6], [4, 5]], // 2
     [[0, 6], [3, 4]], // 3
@@ -1212,7 +1230,7 @@ function AnimCube6(params) {
     [0, 0, 6, 6, 4, 6], // D
     [2, 1, 0, 0, 1, 2], // F
     [4, 6, 0, 0, 6, 4], // B
-    [1, 2, 2, 4, 0, 0], // L 
+    [1, 2, 2, 4, 0, 0], // L
     [6, 4, 4, 2, 0, 0]  // R
   ];
 
@@ -1307,6 +1325,7 @@ function AnimCube6(params) {
 
   function twistLayer(cube, layer, num, middle) {
     twistLayer2(cube, layer, num, middle);
+    twistLayer2(mcube, layer, num, middle);
     if (superCube == true && num > 0 && num < 4) {
       twistLayer2(scube, layer, num, middle);
       twistSuperLayer(layer, num, middle);
@@ -1450,7 +1469,7 @@ function AnimCube6(params) {
     [[2, 0], [2, 6], [1, 6], [1, 0]], // 7 Ln
     [[0, 2], [6, 2], [6, 3], [0, 3]], // 8 Dm
     [[4, 0], [4, 6], [3, 6], [3, 0]], // 9 Rm
-    [[0, 3], [6, 3], [6, 4], [0, 4]], // 10 Um 
+    [[0, 3], [6, 3], [6, 4], [0, 4]], // 10 Um
     [[3, 0], [3, 6], [2, 6], [2, 0]], // 11 Lm
   ];
   var areaDirs = [
@@ -1604,7 +1623,7 @@ function AnimCube6(params) {
       blockArray[3] = midBlocks3;
       blockArray[4] = midBlocks4;
       blockArray[5] = botBlocks;
-      // see AnimCube7.js for documentation of orderMode 
+      // see AnimCube7.js for documentation of orderMode
       var orderMode, Prod, memProd, copyvec = [];
       vScale(vCopy(copyvec, eye), 5.0 + persp);
       for (var i = 0; i < cubeDim; i++) {
@@ -1782,9 +1801,11 @@ function AnimCube6(params) {
                     drawPolygon(graphics, fillX, fillY, "#fdfdfd");
                   */
 		  drawSuperArrow(graphics, fillX, fillY, i, scube[i][p * 6 + q], colors[cube[i][p * 6 + q]]);
+                  drawMarker(graphics, fillX, fillY, mcube[i][p * 6 + q]);
                 }
                 else {
                   fillPolygon(graphics, fillX, fillY, colors[cube[i][p * 6 + q]]);
+                  drawMarker(graphics, fillX, fillY, mcube[i][p * 6 + q]);
                   if (hintBorder)
                     drawPolygon(graphics, fillX, fillY, darker(colors[cube[i][p * 6 + q]]));
                   else
@@ -1839,6 +1860,7 @@ function AnimCube6(params) {
               else {
                 drawPolygon(graphics, fillX, fillY, colors[cube[i][p * 6 + q]]);
                 fillPolygon(graphics, fillX, fillY, colors[cube[i][p * 6 + q]]);
+                drawMarker(graphics, fillX, fillY, mcube[i][p * 6 + q]);
               }
             }
           }
@@ -2288,6 +2310,62 @@ function AnimCube6(params) {
 
   var superRotate = [[0, 1, 2, 3], [3, 0, 1, 2], [2, 3, 0, 1], [1, 2, 3, 0]];
 
+  function drawMarker(g, xx, yy, m) {
+    var x = [];
+    var y = [];
+    // scale down so there is a margin around the X
+    for (var i = 0; i < 4; i++) {
+      x[i] = Math.floor(xx[i] + (xx[superRotate[2][i]] - xx[i]) * .20);
+      y[i] = Math.floor(yy[i] + (yy[superRotate[2][i]] - yy[i]) * .20);
+    }
+    g.lineWidth = 2*dpr;
+    g.strokeStyle = "black";
+
+    if (m === 1) {
+      // an "X"
+      g.beginPath();
+      g.moveTo(x[0], y[0]);
+      g.lineTo(x[2], y[2]);
+      g.closePath();
+      g.stroke();
+      g.beginPath();
+      g.moveTo(x[1], y[1]);
+      g.lineTo(x[3], y[3]);
+      g.closePath();
+      g.stroke();
+    } else if (m === 2) {
+      // a square "□"
+      g.beginPath();
+      g.moveTo(x[0], y[0]);
+      g.lineTo(x[1], y[1]);
+      g.lineTo(x[2], y[2]);
+      g.lineTo(x[3], y[3]);
+      g.closePath();
+      g.stroke();
+    } else if (m === 3) {
+      // a "+"
+      g.beginPath();
+      g.moveTo((x[0] + x[1]) / 2, (y[0] + y[1]) / 2);
+      g.lineTo((x[2] + x[3]) / 2, (y[2] + y[3]) / 2);
+      g.closePath();
+      g.stroke();
+      g.beginPath();
+      g.moveTo((x[0] + x[3]) / 2, (y[0] + y[3]) / 2);
+      g.lineTo((x[1] + x[2]) / 2, (y[1] + y[2]) / 2);
+      g.closePath();
+      g.stroke();
+    } else if (m === 4) {
+      // a 45°-rotated square "◇"
+      g.beginPath();
+      g.moveTo((x[0] + x[1]) / 2, (y[0] + y[1]) / 2);
+      g.lineTo((x[1] + x[2]) / 2, (y[1] + y[2]) / 2);
+      g.lineTo((x[2] + x[3]) / 2, (y[2] + y[3]) / 2);
+      g.lineTo((x[3] + x[0]) / 2, (y[3] + y[0]) / 2);
+      g.closePath();
+      g.stroke();
+    }
+  }
+
   function drawSuperArrow(g, xx, yy, face, superTwist, color) {
     var x = [];
     var y = [];
@@ -2594,6 +2672,7 @@ function AnimCube6(params) {
       for (var j = 0; j < 36; j++) {
         cube[i][j] = initialCube[i][j];
         scube[i][j] = initialSCube[i][j];
+        mcube[i][j] = initialMCube[i][j];
        }
     if (initialMove.length > 0 && typeof initialMove[curMove] != 'undefined')
       doMove(cube, initialMove[curMove], 0, initialMove[curMove].length, false);
@@ -3004,6 +3083,8 @@ function AnimCube6(params) {
       scube[i] = [];
       initialCube[i] = [];
       initialSCube[i] = [];
+      mcube[i] = [];
+      initialMCube[i] = [];
     }
     for (var i = 0; i < 36; i++) {
       dragCornersX[i] = [];
